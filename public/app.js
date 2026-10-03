@@ -3,7 +3,30 @@ function generate(){const requested=+$('width').value,k=+$('colors').value;let w
 function physical(){if(result)$('physical').textContent=`${(result.w*+$('size').value/10).toFixed(1)} × ${(result.h*+$('size').value/10).toFixed(1)} cm`}
 function paint(canvas,numbered=false,cell=16,ox=0,oy=0){let ctx=canvas.getContext('2d');result.cells.forEach((id,index)=>{let x=index%result.w*cell+ox,y=Math.floor(index/result.w)*cell+oy;if(id<0)return;let p=result.palette[id];if(numbered){ctx.fillStyle=p.hex;ctx.fillRect(x,y,cell,cell);ctx.strokeStyle='#0003';ctx.lineWidth=.5;ctx.strokeRect(x,y,cell,cell);ctx.fillStyle=p.rgb[0]*.299+p.rgb[1]*.587+p.rgb[2]*.114>145?'#242424':'white';ctx.font=`${Math.max(8,cell*.42)}px Arial`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(id+1,x+cell/2,y+cell/2)}else{ctx.fillStyle='#00000016';ctx.beginPath();ctx.arc(x+cell/2+.7,y+cell/2+1.2,cell*.46,0,Math.PI*2);ctx.fill();ctx.fillStyle=p.hex;ctx.beginPath();ctx.arc(x+cell/2,y+cell/2,cell*.46,0,Math.PI*2);ctx.fill();ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(x+cell/2,y+cell/2,cell*.13,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#0002';ctx.stroke()}})}
 function render(){let canvas=$('canvas');canvas.width=result.w*16;canvas.height=result.h*16;paint(canvas,mode==='pattern');$('beads').classList.toggle('active',mode==='beads');$('pattern').classList.toggle('active',mode==='pattern');$('beads').setAttribute('aria-pressed',mode==='beads');$('pattern').setAttribute('aria-pressed',mode==='pattern')}
-async function loadFile(file){if(!file)return;if(!['image/png','image/jpeg','image/webp'].includes(file.type)){$('message').textContent='请选择 JPG、PNG 或 WEBP 图片。';return}if(file.size>20*1024*1024){$('message').textContent='图片大于 20 MB，请先缩小后重试。';return}let url=URL.createObjectURL(file);try{let img=new Image();await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=reject;img.src=url});source=document.createElement('canvas');const scale=Math.min(1,1600/Math.max(img.naturalWidth,img.naturalHeight));source.width=Math.max(1,Math.round(img.naturalWidth*scale));source.height=Math.max(1,Math.round(img.naturalHeight*scale));source.getContext('2d').drawImage(img,0,0,source.width,source.height);title=file.name;generate()}catch(e){$('message').textContent='无法读取这张图片，请尝试另一张。'}finally{URL.revokeObjectURL(url);$('file').value=''}}
+function readFileAsDataURL(file){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=()=>reject(new Error('无法读取文件'));reader.onabort=()=>reject(new Error('读取已取消'));reader.readAsDataURL(file)})}
+async function loadFile(file){
+ if(!file)return;
+ const type=(file.type||'').toLowerCase();
+ const extension=(file.name||'').split('.').pop().toLowerCase();
+ if(['heic','heif'].includes(extension)||['image/heic','image/heif'].includes(type)){$('message').textContent='暂不支持 HEIC / HEIF，请先转换为 JPG 或 PNG。';return}
+ if(!['image/png','image/jpeg','image/webp'].includes(type)&&!(type===''&&['png','jpg','jpeg','webp'].includes(extension))){$('message').textContent='请选择 JPG、PNG 或 WEBP 图片。';return}
+ if(file.size>20*1024*1024){$('message').textContent='图片大于 20 MB，请先缩小后重试。';return}
+ $('message').textContent='正在读取图片…';
+ try{
+  // The deployed CSP allows data: images but excludes blob: URLs.
+  // FileReader keeps the image on-device without changing the security policy.
+  const dataURL=await readFileAsDataURL(file);
+  const img=new Image();
+  await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=()=>reject(new Error('无法解码图片'));img.src=dataURL});
+  const nextSource=document.createElement('canvas');
+  const scale=Math.min(1,1600/Math.max(img.naturalWidth,img.naturalHeight));
+  nextSource.width=Math.max(1,Math.round(img.naturalWidth*scale));
+  nextSource.height=Math.max(1,Math.round(img.naturalHeight*scale));
+  nextSource.getContext('2d').drawImage(img,0,0,nextSource.width,nextSource.height);
+  source=nextSource;title=file.name;generate();
+ }catch(e){$('message').textContent='无法读取这张图片，请确认文件未损坏，或转换为 JPG / PNG 后重试。'}
+ finally{$('file').value=''}
+}
 $('file').addEventListener('change',e=>loadFile(e.target.files[0]));$('drop').addEventListener('dragover',e=>{e.preventDefault();$('drop').classList.add('drag')});$('drop').addEventListener('dragleave',()=>$('drop').classList.remove('drag'));$('drop').addEventListener('drop',e=>{e.preventDefault();$('drop').classList.remove('drag');loadFile(e.dataTransfer.files[0])});['width','colors'].forEach(id=>{$(id).addEventListener('input',()=>$(id+'Value').textContent=$(id).value);$(id).addEventListener('change',generate)});$('size').addEventListener('change',physical);$('generate').onclick=generate;$('beads').onclick=()=>{mode='beads';render()};$('pattern').onclick=()=>{mode='pattern';render()};
 function downloadBlob(blob,name){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),30000)}
 $('download').onclick=()=>{let c=document.createElement('canvas'),cell=24,pad=36,rows=Math.ceil(result.palette.length/4);c.width=Math.max(result.w*cell+pad*2,760);c.height=result.h*cell+pad*2+80+rows*34;let ctx=c.getContext('2d');ctx.fillStyle='white';ctx.fillRect(0,0,c.width,c.height);ctx.fillStyle='#25272b';ctx.font='bold 24px sans-serif';ctx.fillText('豆趣 BEAD POP · 编号图纸',pad,32);paint(c,true,cell,pad,60);ctx.font='10px Arial';ctx.fillStyle='#666';for(let x=0;x<result.w;x++)if(x%5===0)ctx.fillText(x+1,pad+x*cell+5,52);for(let y=0;y<result.h;y++)if(y%5===0)ctx.fillText(y+1,8,60+y*cell+16);let bottom=result.h*cell+90;ctx.font='14px sans-serif';ctx.fillStyle='#444';ctx.fillText(`${result.w} × ${result.h} 颗 · 直径 ${$('size').value} mm · 配色非品牌色号`,pad,bottom);result.palette.forEach((p,i)=>{let x=pad+i%4*(c.width-pad*2)/4,y=bottom+24+Math.floor(i/4)*34;ctx.fillStyle=p.hex;ctx.fillRect(x,y,20,20);ctx.strokeStyle='#ccc';ctx.strokeRect(x,y,20,20);ctx.fillStyle='#333';ctx.font='12px sans-serif';ctx.fillText(`${i+1} ${p.hex.toUpperCase()} / ${p.count}颗`,x+26,y+15)});c.toBlob(blob=>{if(blob)downloadBlob(blob,'bead-pop-pattern.png')},'image/png')};$('csv').onclick=()=>{let text='\uFEFF图纸编号,HEX颜色,数量（颗）\r\n'+result.palette.map((p,i)=>`${i+1},${p.hex.toUpperCase()},${p.count}`).join('\r\n');downloadBlob(new Blob([text],{type:'text/csv;charset=utf-8'}),'bead-pop-colors.csv')};generate();
