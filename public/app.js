@@ -9,7 +9,8 @@ async function loadFile(file){
  const type=(file.type||'').toLowerCase();
  const extension=(file.name||'').split('.').pop().toLowerCase();
  if(['heic','heif'].includes(extension)||['image/heic','image/heif'].includes(type)){$('message').textContent='暂不支持 HEIC / HEIF，请先转换为 JPG 或 PNG。';return}
- if(!['image/png','image/jpeg','image/webp'].includes(type)&&!(type===''&&['png','jpg','jpeg','webp'].includes(extension))){$('message').textContent='请选择 JPG、PNG 或 WEBP 图片。';return}
+ const allowedTypes={jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',webp:'image/webp'};
+ if(!Object.prototype.hasOwnProperty.call(allowedTypes,extension)||(type!==''&&type!==allowedTypes[extension])){$('message').textContent='仅支持 JPG、JPEG、PNG、WebP 图片，请转换格式后重试。';$('file').value='';return}
  if(file.size>20*1024*1024){$('message').textContent='图片大于 20 MB，请先缩小后重试。';return}
  $('message').textContent='正在读取图片…';
  try{
