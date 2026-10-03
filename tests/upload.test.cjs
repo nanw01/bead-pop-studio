@@ -77,7 +77,7 @@ test('oversize and invalid file types are rejected', async () => {
   const a = app(); await a.load({ ...png, size: 21 * 1024 * 1024 });
   assert.match(a.element('message').textContent, /20 MB/);
   await a.load({ ...png, type: 'text/plain' });
-  assert.match(a.element('message').textContent, /请选择/); assert.equal(a.sources.length, 0);
+  assert.match(a.element('message').textContent, /仅支持/); assert.equal(a.sources.length, 0);
 });
 test('read and decode failures preserve the previous result and allow retry', async () => {
   const a = app(); await a.load(png);
