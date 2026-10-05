@@ -1,0 +1,4 @@
+interface:
+  display_name: "Creative Director"
+  short_description: "Product-led web direction, motion plans and review"
+  default_prompt: "Use $creative-director to select a product-led visual direction and produce a reviewable experience plan."

@@ -1,0 +1,115 @@
+{
+  "checks": [
+    "png decoded locally",
+    "jpeg decoded locally",
+    "webp decoded locally",
+    "board 52",
+    "centered 2:1 ratio 52",
+    "count excludes letterbox 52",
+    "MARD matching 52",
+    "board 78",
+    "centered 2:1 ratio 78",
+    "count excludes letterbox 78",
+    "MARD matching 78",
+    "board 104",
+    "centered 2:1 ratio 104",
+    "count excludes letterbox 104",
+    "MARD matching 104",
+    "transparent upload preserves work",
+    "transparent error message",
+    "damaged upload handled",
+    "unsupported upload handled",
+    "transparent pixels excluded",
+    "color limit 4",
+    "color limit 24",
+    "observed motion intermediate",
+    "repeated motion and mode switch cancel",
+    "keyboard palette selection",
+    "PNG cell codes and legend counts match",
+    "keyboard detail open",
+    "escape detail close",
+    "dialog restores focus",
+    "reduced motion immediately settles",
+    "no horizontal overflow 390",
+    "no horizontal overflow 320",
+    "104 detail readable intrinsic grid",
+    "detail locates occupied region",
+    "keyboard detail scrolling",
+    "no console or page errors",
+    "no failed resources"
+  ],
+  "errors": [],
+  "failed": [],
+  "exportPalette": [
+    {
+      "code": "A19",
+      "rgb": [
+        253,
+        126,
+        119
+      ],
+      "hex": "#fd7e77",
+      "count": 416
+    },
+    {
+      "code": "M6",
+      "rgb": [
+        176,
+        170,
+        134
+      ],
+      "hex": "#b0aa86",
+      "count": 74
+    },
+    {
+      "code": "B32",
+      "rgb": [
+        146,
+        173,
+        96
+      ],
+      "hex": "#92ad60",
+      "count": 66
+    },
+    {
+      "code": "A5",
+      "rgb": [
+        255,
+        228,
+        75
+      ],
+      "hex": "#ffe44b",
+      "count": 64
+    },
+    {
+      "code": "F21",
+      "rgb": [
+        242,
+        187,
+        198
+      ],
+      "hex": "#f2bbc6",
+      "count": 8
+    },
+    {
+      "code": "F1",
+      "rgb": [
+        255,
+        146,
+        128
+      ],
+      "hex": "#ff9280",
+      "count": 8
+    },
+    {
+      "code": "B31",
+      "rgb": [
+        178,
+        230,
+        148
+      ],
+      "hex": "#b2e694",
+      "count": 4
+    }
+  ]
+}

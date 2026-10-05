@@ -1,0 +1,39 @@
+async (page) => {
+ const errors=[],failed=[],checks=[];page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text())});page.on('requestfailed',r=>failed.push(r.url()));
+ const assert=(ok,name)=>{if(!ok)throw Error(name);checks.push(name)};
+ await page.emulateMedia({reducedMotion:'no-preference'});await page.goto('http://127.0.0.1:8766');await page.setViewportSize({width:1440,height:1000});
+ await page.screenshot({path:'creative/evidence/desktop-final.png',fullPage:true});
+ const state=()=>page.evaluate(()=>({w:result.w,h:result.h,cells:result.cells,palette:result.palette,name:document.getElementById('name').textContent}));
+ const upload=async(format='png',transparent=false)=>page.evaluate(async({format,transparent})=>{
+  const c=document.createElement('canvas');c.width=16;c.height=8;const x=c.getContext('2d');if(!transparent){x.fillStyle=MARD221[0].hex;x.fillRect(0,0,8,8);x.fillStyle=MARD221[1].hex;x.fillRect(8,0,8,8)}
+  const b=await new Promise(r=>c.toBlob(r,'image/'+format));await loadFile(new File([b],'fixture.'+(format==='jpeg'?'jpg':format),{type:'image/'+format}));
+ },{format,transparent});
+ for(const format of ['png','jpeg','webp']){await upload(format);assert((await state()).name==='fixture.'+(format==='jpeg'?'jpg':format),format+' decoded locally')}
+ await upload();
+ for(const n of [52,78,104]){
+  await page.selectOption('#width',String(n));const s=await state();assert(s.w===n&&s.h===n,'board '+n);
+  assert(s.cells.filter(i=>i>=0).length===n*n/2,'centered 2:1 ratio '+n);
+  assert(s.palette.reduce((a,p)=>a+p.count,0)===n*n/2,'count excludes letterbox '+n);
+  assert(await page.evaluate(()=>result.palette.every(p=>MARD221.some(c=>c.code===p.code&&c.hex.toLowerCase()===p.hex.toLowerCase()))),'MARD matching '+n);
+ }
+ const before=await state();await upload('png',true);assert(JSON.stringify(await state())===JSON.stringify(before),'transparent upload preserves work');assert((await page.locator('#message').textContent()).includes('完全透明'),'transparent error message');
+ await page.evaluate(async()=>loadFile(new File(['broken'],'broken.png',{type:'image/png'})));assert((await page.locator('#message').textContent()).includes('无法读取'),'damaged upload handled');
+ await page.evaluate(async()=>loadFile(new File(['<svg/>'],'bad.svg',{type:'image/svg+xml'})));assert((await page.locator('#message').textContent()).includes('仅支持'),'unsupported upload handled');await upload();
+ await page.evaluate(async()=>{const c=document.createElement('canvas');c.width=104;c.height=104;const x=c.getContext('2d');x.fillStyle=MARD221[0].hex;x.fillRect(0,0,52,104);const b=await new Promise(r=>c.toBlob(r));await loadFile(new File([b],'half.png',{type:'image/png'}))});assert((await state()).cells.filter(i=>i>=0).length===104*104/2,'transparent pixels excluded');
+ await page.goto('http://127.0.0.1:8766');
+ for(const k of [4,24]){await page.locator('#colors').fill(String(k));await page.locator('#colors').dispatchEvent('change');assert((await state()).palette.length<=k,'color limit '+k)}
+ await page.locator('#colors').fill('12');await page.locator('#colors').dispatchEvent('change');
+ await page.click('#replay');await page.waitForTimeout(250);await page.screenshot({path:'creative/evidence/assembly-mid-final.png'});const mid=await page.locator('#canvas').evaluate(c=>c.toDataURL());await page.waitForTimeout(850);assert(mid!==await page.locator('#canvas').evaluate(c=>c.toDataURL()),'observed motion intermediate');
+ await page.click('#replay');await page.waitForTimeout(70);await page.click('#replay');await page.click('#pattern');const settled=await page.locator('#canvas').evaluate(c=>c.toDataURL());await page.waitForTimeout(1000);assert(settled===await page.locator('#canvas').evaluate(c=>c.toDataURL()),'repeated motion and mode switch cancel');
+ await page.locator('.color-card').first().focus();await page.keyboard.press('Enter');assert(await page.locator('.color-card').first().getAttribute('aria-pressed')==='true','keyboard palette selection');await page.screenshot({path:'creative/evidence/color-focus-final.png',fullPage:true});
+ const expected=await state();
+ const save=async(id,path)=>{const wait=page.waitForEvent('download');await page.click(id);await (await wait).saveAs(path)};
+ await page.evaluate(()=>{window.exportTexts=[];window.savedFillText=CanvasRenderingContext2D.prototype.fillText;CanvasRenderingContext2D.prototype.fillText=function(t,...args){window.exportTexts.push(String(t));return window.savedFillText.call(this,t,...args)}});
+ await save('#download','creative/evidence/pattern-focused.png');const labels=await page.evaluate(()=>{CanvasRenderingContext2D.prototype.fillText=window.savedFillText;return window.exportTexts});assert(expected.palette.every(p=>labels.includes(p.code)&&labels.some(l=>l.includes(p.code+' '+p.hex.toUpperCase()+' / '+p.count+'颗'))),'PNG cell codes and legend counts match');
+ await save('#csv','creative/evidence/colors-final.csv');await page.click('#clearFocus');await save('#download','creative/evidence/pattern-final.png');
+ await page.evaluate(()=>document.getElementById('inspectPattern').focus());await page.keyboard.press('Enter');assert(await page.locator('#patternDialog').evaluate(d=>d.open),'keyboard detail open');await page.screenshot({path:'creative/evidence/detail-final.png'});await page.keyboard.press('Escape');assert(!await page.locator('#patternDialog').evaluate(d=>d.open),'escape detail close');assert(await page.evaluate(()=>document.activeElement.id)==='inspectPattern','dialog restores focus');
+ await page.emulateMedia({reducedMotion:'reduce'});await page.click('#replay');const reduced=await page.locator('#canvas').evaluate(c=>c.toDataURL());await page.waitForTimeout(200);assert(reduced===await page.locator('#canvas').evaluate(c=>c.toDataURL()),'reduced motion immediately settles');
+ for(const width of [390,320]){await page.setViewportSize({width,height:844});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'no horizontal overflow '+width);await page.screenshot({path:'creative/evidence/mobile-'+width+'-final.png',fullPage:true})}
+ await page.selectOption('#width','104');await page.click('#inspectPattern');assert(await page.locator('#detailCanvas').evaluate(c=>c.width)===2912,'104 detail readable intrinsic grid');assert(await page.locator('.detail-scroll').evaluate(e=>e.scrollLeft>0&&e.scrollTop>0),'detail locates occupied region');await page.locator('.detail-scroll').focus();const scrollY=await page.locator('.detail-scroll').evaluate(e=>e.scrollTop);await page.keyboard.press('ArrowDown');await page.waitForTimeout(200);assert(await page.locator('.detail-scroll').evaluate(e=>e.scrollTop)>scrollY,'keyboard detail scrolling');await page.screenshot({path:'creative/evidence/mobile-detail-final.png'});await page.keyboard.press('Escape');
+ assert(errors.length===0,'no console or page errors');assert(failed.length===0,'no failed resources');return {checks,errors,failed,exportPalette:expected.palette};
+}

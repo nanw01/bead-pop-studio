@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "revision": "1",
+  "artifacts": {
+    "brief": {"path": "creative/CREATIVE_BRIEF.md", "revision": "1"},
+    "principles": {"path": "creative/DESIGN_PRINCIPLES.md", "revision": "1"},
+    "experience": {"path": "creative/EXPERIENCE_MAP.md", "revision": "1"}
+  },
+  "stages": {
+    "direction": {"status": "unknown", "checks": []},
+    "experience": {"status": "unknown", "checks": []},
+    "delivery": {"status": "unknown", "checks": []}
+  }
+}

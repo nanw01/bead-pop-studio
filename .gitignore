@@ -2,3 +2,6 @@
 .env
 .env.*
 *.zip
+
+.playwright-cli/
+__pycache__/
